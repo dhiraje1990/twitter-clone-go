@@ -1,10 +1,19 @@
-# Getting Started with Create React App
+# Run the backend
+
+In the `twitter-clone-backend` directory, you can run:
+
+### `go run main.go`
+
+You can run the tests using
+### `go test`
+
+# Getting Started with twitter-clone-frontend
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
 
-In the project directory, you can run:
+In the `twitter-clone-frontend` directory, you can run:
 
 ### `npm start`
 
