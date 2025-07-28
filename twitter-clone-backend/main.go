@@ -20,13 +20,49 @@ func InitDB(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Step 1: Ensure tweets table exists (initial table)
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tweets (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT NOT NULL,
-		text TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		text TEXT NOT NULL
 	);`)
-	return db, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Auto-migrate: add missing columns
+	rows, err := db.Query(`PRAGMA table_info(tweets);`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns := make(map[string]bool)
+
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt *string
+		rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk)
+		columns[name] = true
+	}
+
+	if !columns["username"] {
+		_, err = db.Exec(`ALTER TABLE tweets ADD COLUMN username TEXT DEFAULT 'anonymous';`)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !columns["created_at"] {
+		_, err = db.Exec(`ALTER TABLE tweets ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;`)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return db, nil
 }
 
 func SetupRouter(db *sql.DB) *gin.Engine {
