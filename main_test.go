@@ -15,18 +15,26 @@ import (
 
 var testRouter *gin.Engine
 
-func setupTestDB() {
-	os.Remove("./test.db") // remove old db
+func TestMain(m *testing.M) {
+	// Setup
+	os.Remove("./test.db")
 	db, err := InitDB("./test.db")
 	if err != nil {
 		panic(err)
 	}
 	testRouter = SetupRouter(db)
+
+	// Run tests
+	code := m.Run()
+
+	// Teardown
+	db.Close()
+	os.Remove("./test.db")
+
+	os.Exit(code)
 }
 
 func TestPostTweet(t *testing.T) {
-	setupTestDB()
-
 	body := []byte(`{"text":"Test tweet from automated test"}`)
 	req := httptest.NewRequest("POST", "/tweets", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -40,8 +48,6 @@ func TestPostTweet(t *testing.T) {
 }
 
 func TestGetTweets(t *testing.T) {
-	setupTestDB()
-
 	// Insert a tweet
 	req := httptest.NewRequest("POST", "/tweets", bytes.NewBuffer([]byte(`{"text":"Another test"}`)))
 	req.Header.Set("Content-Type", "application/json")

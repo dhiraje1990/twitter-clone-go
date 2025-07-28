@@ -13,25 +13,21 @@ type Tweet struct {
 	Text string `json:"text"`
 }
 
-func main() {
-	db, err := sql.Open("sqlite3", "./tweets.db")
+func InitDB(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	defer db.Close()
-
-	// Create table if not exists
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tweets (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		text TEXT NOT NULL
 	);`)
-	if err != nil {
-		panic(err)
-	}
+	return db, err
+}
 
+func SetupRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
 
-	// CORS (so React frontend can talk to Go backend)
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
@@ -42,7 +38,6 @@ func main() {
 		c.Next()
 	})
 
-	// List tweets
 	r.GET("/tweets", func(c *gin.Context) {
 		rows, _ := db.Query("SELECT id, text FROM tweets ORDER BY id DESC")
 		var tweets []Tweet
@@ -54,7 +49,6 @@ func main() {
 		c.JSON(http.StatusOK, tweets)
 	})
 
-	// Post a tweet
 	r.POST("/tweets", func(c *gin.Context) {
 		var t Tweet
 		if err := c.BindJSON(&t); err != nil {
@@ -69,5 +63,16 @@ func main() {
 		c.Status(http.StatusCreated)
 	})
 
+	return r
+}
+
+func main() {
+	db, err := InitDB("./tweets.db")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	r := SetupRouter(db)
 	r.Run(":8080")
 }
